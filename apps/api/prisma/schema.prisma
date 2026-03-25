@@ -1,0 +1,128 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum KycStatus {
+  PENDING
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  SWAP
+  FEE
+}
+
+enum TransactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REVERSED
+}
+
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  phone             String    @unique
+  passwordHash      String
+  firstName         String
+  lastName          String
+  nationality       String
+  emailVerified     Boolean   @default(false)
+  phoneVerified     Boolean   @default(false)
+  kycStatus         KycStatus @default(PENDING)
+  kycDocumentUrl    String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  wallets           Wallet[]
+  otpTokens         OtpToken[]
+  sentTransactions  Transaction[] @relation("SenderTransactions")
+  receivedTransactions Transaction[] @relation("ReceiverTransactions")
+}
+
+model Wallet {
+  id        String   @id @default(uuid())
+  userId    String
+  currency  String
+  balance   Decimal  @default(0) @db.Decimal(20, 8)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sentTransactions     Transaction[] @relation("FromWallet")
+  receivedTransactions Transaction[] @relation("ToWallet")
+
+  @@unique([userId, currency])
+  @@index([userId])
+}
+
+model Transaction {
+  id              String            @id @default(uuid())
+  type            TransactionType
+  status          TransactionStatus @default(PENDING)
+  fromCurrency    String?
+  toCurrency      String?
+  fromAmount      Decimal?          @db.Decimal(20, 8)
+  toAmount        Decimal?          @db.Decimal(20, 8)
+  exchangeRate    Decimal?          @db.Decimal(20, 8)
+  feeAmount       Decimal           @default(0) @db.Decimal(20, 8)
+  feeCurrency     String?
+  reference       String            @unique
+  externalRef     String?
+  description     String?
+  metadata        Json?
+  senderId        String?
+  receiverId      String?
+  fromWalletId    String?
+  toWalletId      String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  sender          User?             @relation("SenderTransactions", fields: [senderId], references: [id])
+  receiver        User?             @relation("ReceiverTransactions", fields: [receiverId], references: [id])
+  fromWallet      Wallet?           @relation("FromWallet", fields: [fromWalletId], references: [id])
+  toWallet        Wallet?           @relation("ToWallet", fields: [toWalletId], references: [id])
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([reference])
+}
+
+model OtpToken {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+}
+
+model ExchangeRate {
+  id          String   @id @default(uuid())
+  fromCurrency String
+  toCurrency   String
+  rate         Decimal  @db.Decimal(20, 8)
+  source       String   @default("manual")
+  fetchedAt    DateTime @default(now())
+
+  @@unique([fromCurrency, toCurrency])
+  @@index([fromCurrency, toCurrency])
+}

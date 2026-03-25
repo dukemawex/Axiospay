@@ -1,0 +1,31 @@
+name: Deploy API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/api/**'
+      - 'infra/.do/app.yaml'
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to DigitalOcean
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Deploy to DigitalOcean App Platform
+        run: doctl apps update ${{ secrets.DO_APP_ID }} --spec infra/.do/app.yaml
+
+      - name: Wait for deployment
+        run: |
+          echo "Deployment triggered. Check DigitalOcean dashboard for status."

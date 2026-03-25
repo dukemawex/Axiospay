@@ -1,0 +1,51 @@
+name: axiospay
+
+region: fra
+
+services:
+  - name: api
+    source_dir: apps/api
+    dockerfile_path: apps/api/Dockerfile
+    github:
+      repo: dukemawex/Axiospay
+      branch: main
+      deploy_on_push: true
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    http_port: 4000
+    health_check:
+      http_path: /health
+      initial_delay_seconds: 30
+      period_seconds: 10
+    envs:
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        type: SECRET
+      - key: REDIS_URL
+        scope: RUN_TIME
+        type: SECRET
+      - key: JWT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+      - key: NODE_ENV
+        scope: RUN_TIME
+        value: production
+      - key: PORT
+        scope: RUN_TIME
+        value: "4000"
+      - key: FRONTEND_URL
+        scope: RUN_TIME
+        value: https://axiospay.vercel.app
+
+databases:
+  - name: axiospay-db
+    engine: PG
+    version: "16"
+    size: db-s-1vcpu-1gb
+    num_nodes: 1
+
+  - name: axiospay-redis
+    engine: REDIS
+    version: "7"
+    size: db-s-1vcpu-1gb
+    num_nodes: 1
