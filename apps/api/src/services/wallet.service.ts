@@ -1,4 +1,5 @@
 import { Decimal } from '@prisma/client/runtime/library';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { AppError } from '../middleware/error.middleware';
 import { interswitchService } from './interswitch.service';
@@ -77,7 +78,7 @@ export const walletService = {
     if (!transaction) throw new AppError(404, 'Transaction not found', 'NOT_FOUND');
     if (transaction.status !== 'PENDING') return;
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.transaction.update({
         where: { reference },
         data: { status: 'COMPLETED' },

@@ -1,4 +1,5 @@
 import { Decimal } from '@prisma/client/runtime/library';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { AppError } from '../middleware/error.middleware';
 import { ratesService } from './rates.service';
@@ -30,7 +31,7 @@ export const swapService = {
     const toAmount = netAmount.mul(rate).toDecimalPlaces(8);
     const reference = `SWP-${uuidv4().replace(/-/g, '').slice(0, 16).toUpperCase()}`;
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const fromWallet = await tx.wallet.findUnique({
         where: { userId_currency: { userId, currency: input.fromCurrency } },
       });
